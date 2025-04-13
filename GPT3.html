@@ -1,0 +1,434 @@
+<!DOCTYPE html>
+<html lang="en" style="color-scheme: dark;">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+  <title>ChatGPT</title>
+  <link rel="apple-touch-icon" sizes="180x180" href="https://www.latinsud.com/pub/fakeGPT/chatgpt_files/apple-touch-icon.png">
+  <link rel="icon" type="image/png" sizes="32x32" href="https://www.latinsud.com/pub/fakeGPT/chatgpt_files/favicon-32x32.png">
+  <link rel="icon" type="image/png" sizes="16x16" href="https://www.latinsud.com/pub/fakeGPT/chatgpt_files/favicon-16x16.png">
+  <style>
+    body {
+      margin: 0;
+      font-family: "Inter", sans-serif;
+      background-color: #343541;
+      color: #d1d5db;
+      display: flex;
+      height: 100vh;
+      overflow: hidden;
+    }
+    .sidebar {
+      width: 260px;
+      background-color: #202123;
+      display: flex;
+      flex-direction: column;
+      padding: 10px;
+      box-sizing: border-box;
+    }
+    .sidebar-header {
+      display: flex;
+      align-items: center;
+      gap: 10px;
+      color: #fff;
+      font-size: 18px;
+      padding: 20px 10px;
+      border-bottom: 1px solid #444;
+    }
+    .chat-header {
+      display: flex;
+      align-items: center;
+      gap: 10px;
+      padding: 20px;
+      border-bottom: 1px solid #565869;
+      font-size: 18px;
+      color: #fff;
+    }
+    .sidebar-button {
+      background: transparent;
+      color: #d1d5db;
+      border: 1px solid #565869;
+      border-radius: 5px;
+      padding: 10px;
+      margin-bottom: 10px;
+      text-align: left;
+      cursor: pointer;
+      transition: background 0.3s;
+    }
+    .sidebar-button:hover {
+      background: #343541;
+    }
+    .main {
+      flex: 1;
+      display: flex;
+      flex-direction: column;
+    }
+    .chat-window {
+      flex-grow: 1;
+      overflow-y: auto;
+      padding: 20px;
+      background-color: #343541;
+    }
+    .message {
+      max-width: 700px;
+      margin: 10px auto;
+      border-radius: 8px;
+      padding: 16px;
+      display: flex;
+      gap: 12px;
+    }
+    .user-message {
+      background-color: #444654;
+    }
+    .bot-message {
+      background-color: #343541;
+      border: 1px solid #565869;
+    }
+    .avatar {
+      min-width: 40px;
+      height: 40px;
+      border-radius: 5px;
+      background-color: #10a37f;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-weight: bold;
+      color: white;
+      font-size: 14px;
+    }
+    .user-avatar {
+      background-color: #5c5cff;
+    }
+    .message-text {
+      white-space: pre-wrap;
+    }
+    .input-container {
+      display: flex;
+      padding: 16px;
+      background-color: #40414f;
+      border-top: 1px solid #565869;
+    }
+    .input-field {
+      flex-grow: 1;
+      background: #343541;
+      color: white;
+      border: 1px solid #565869;
+      padding: 12px;
+      border-radius: 5px;
+      outline: none;
+    }
+    .send-button {
+      margin-left: 8px;
+      background-color: #10a37f;
+      color: white;
+      border: none;
+      padding: 12px 16px;
+      border-radius: 5px;
+      cursor: pointer;
+    }
+    .footer {
+      font-size: 12px;
+      color: #a3a3a3;
+      text-align: center;
+      padding: 10px;
+    }
+    .dots {
+      display: flex;
+      align-items: center;
+      gap: 4px;
+      height: 20px;
+    }
+    .dot {
+      width: 6px;
+      height: 6px;
+      background-color: #d1d5db;
+      border-radius: 50%;
+      animation: blink 1.4s infinite both;
+    }
+    .dot:nth-child(2) { animation-delay: 0.2s; }
+    .dot:nth-child(3) { animation-delay: 0.4s; }
+    @keyframes blink {
+      0%, 80%, 100% { opacity: 0; }
+      40% { opacity: 1; }
+    }
+    img.chatgpt-logo {
+      width: 30px;
+      height: 30px;
+    }
+  </style>
+</head>
+<body>
+  <div class="sidebar">
+    <div class="sidebar-header">
+      <img src="https://www.latinsud.com/pub/fakeGPT/chatgpt_files/favicon-32x32.png" alt="ChatGPT Logo" class="chatgpt-logo" />
+      ChatGPT
+    </div>
+    <button class="sidebar-button">+ New Chat</button>
+    <!-- <button class="sidebar-button">Upgrade to Plus</button> -->
+    <button class="sidebar-button">Settings</button>
+    <button class="sidebar-button">Help & FAQ</button>
+  </div>
+  <div class="main">
+    <div class="chat-header">
+      <img src="https://www.latinsud.com/pub/fakeGPT/chatgpt_files/favicon-32x32.png" alt="ChatGPT Logo" class="chatgpt-logo" />
+      ChatGPT
+    </div>
+    <div id="chatWindow" class="chat-window"></div>
+    <div class="input-container">
+      <input id="userInput" type="text" class="input-field" placeholder="Send a message..." />
+      <button onclick="sendMessage()" class="send-button">Send</button>
+    </div>
+    <div class="footer">
+      ChatGPT can make mistakes. Consider checking important information.
+    </div>
+  </div>
+  <script>
+    const chatWindow = document.getElementById('chatWindow');
+    const userInput = document.getElementById('userInput');
+    let typingInterval = null;
+    let isTyping = false;
+
+
+    const articles = {
+  "Give me an article on Immigration": `
+<strong>U.S. Schools Draw Criticism for Wading Into Immigration Politics Amid Enforcement Push</strong><br>
+
+PHOENIX — School districts in multiple U.S. cities are responding to recent immigration enforcement activity near campuses, but some critics say they’re prioritizing political messaging over education and straying from their primary mission.
+
+In Philadelphia, the public school system declared all campuses “safe spaces,” a move some call a political gesture rather than a necessary precaution. “This isn’t about safety---it’s about schools inserting themselves into a national policy debate,” said David Klein, an education policy fellow with the Liberty Institute.
+
+Although U.S. Immigration and Customs Enforcement policy limits actions at schools, officials say activity near public spaces like bus stops is being mischaracterized. Supporters of the federal approach argue the rules are clear and that schools and media outlets are fueling unnecessary panic. “We’re enforcing the law, not launching raids on classrooms,” said John Trevino, a former DHS official.
+
+Chicago Public Schools, where immigrant communities make up a large share of students, have reported slight dips in attendance in some neighborhoods. Some local leaders question whether the district is using these numbers to push a political narrative.
+
+“We want families to feel confident that their children are safe with us,” said district spokesperson Monica Reyes. But critics argue that such messaging veers into activism when it responds directly to federal immigration policies. “We want schools to teach, not to posture,” said Angela Morris, a parent and member of the local school accountability board.
+
+In Houston, schools held legal prep sessions for families potentially facing deportation. Critics argue these events go beyond support and veer into publicly funded advocacy. “That’s not the school’s role. It’s a legal and political issue,” said parent Danielle Singh.
+
+While education experts acknowledge student stress, conservative analysts caution against framing enforcement as trauma. “It’s one thing to provide counseling,” said policy analyst Erin Blake. “It’s another to politicize enforcement in a way that undermines respect for the law.”
+
+While no enforcement actions have been reported inside school buildings, critics say the larger concern is not safety, but mission drift. “It’s not about what’s happening in classrooms,” said Blake. “It’s about how districts are using federal enforcement as an excuse to engage in political theater.”
+  `,
+
+  "Give me an article on Gun Control": `
+<strong>Hawaii Gun Ban Sparks Legal Fight Over Second Amendment Rights
+</strong><br>
+
+HONOLULU — A federal lawsuit is challenging Hawaii’s law that prohibits most residents under age 21 from owning handguns, marking the latest legal battle over firearm restrictions as concerns grow about government overreach and threats to constitutional freedoms.
+
+The challenge comes amid broader efforts in several states to expand gun control laws in response to concerns over mass shootings and rising firearm-related deaths. Supporters of these laws argue they are necessary to improve public safety.
+
+But gun rights advocates say the real issue is not access to firearms, but failure to enforce existing laws and address deeper problems like mental health and community safety. “We don’t need more restrictions. We need to focus on holding criminals accountable,” said Mark Collins, spokesperson for the Liberty Firearms Coalition.
+
+Critics of gun control argue that such laws unfairly burden responsible citizens while failing to deter violence. “Every American has the right to defend themselves, regardless of age,” said Natalie Rivers, a constitutional law expert at the Freedom Legal Foundation. “If you’re old enough to serve your country, you should be allowed to exercise your Second Amendment rights.”
+
+At the federal level, proposals such as universal background checks have struggled to gain bipartisan support. Many conservatives warn that these measures could lead to national registries and increased surveillance of lawful gun owners.
+
+Recent court decisions have strengthened Second Amendment protections. In 2022, the U.S. Supreme Court’s decision in New York State Rifle & Pistol Association v. Bruen established a higher legal bar for firearm restrictions, triggering lawsuits across the country.
+
+Experts suggest that addressing gun violence should prioritize enforcing current laws, supporting mental health care, and strengthening law enforcement. Many argue that piling on new regulations misses the mark and risks undermining constitutional rights.
+
+While views differ on the best path forward, many believe the focus must remain on individual liberty---not blanket restrictions that penalize the law-abiding.<br>
+  `,
+
+  "Give me an article on Climate Change": `
+<strong>Athletes Discuss Practical Realities Amid Climate Debates at COP29 Summit</strong><br>
+
+BAKU, Azerbaijan — Athletes joined scientists and policymakers at the COP29 U.N. Climate Summit this week to discuss how weather-related challenges affect sports, public health, and global event planning.
+
+The summit featured discussions on the impact of rising temperatures and extreme weather on athletic performance and logistics. Indian triathlete Pragnya Mohan noted that heatwaves in South Asia led her to adjust her training locations. American discus thrower Sam Mattis recalled challenging conditions during the 2021 U.S. Olympic trials in Oregon, where high temperatures affected both athletes and spectators. New Zealand soccer player Katie Rood described her team's practical approach, using heat chambers to prepare for humid playing conditions.
+
+Participants also examined feasible ways the global sports industry can reduce its environmental footprint. Topics included using renewable energy at stadiums, cutting emissions from travel, and improving waste management at events. Some critics, however, questioned whether these efforts deliver measurable outcomes or simply create unnecessary regulatory and financial strain on sports organizations.
+
+The discussions also considered the public health implications of extreme weather. Experts discussed increased heat-related illnesses and cardiovascular strain during extreme weather. Jessica Murfree, a researcher in sport administration, highlighted the need for realistic support for communities lacking cooling equipment and safe training environments. Several voices urged shifting focus from restrictive climate mandates toward economic growth, free-market solutions, and infrastructure resilience.
+
+While opinions varied on the speed and scale of changes needed, summit speakers agreed that sports can contribute to resilience and realistic adaptation. Still, some skeptics question the effectiveness of such summits, which often generate headlines but few measurable results. Future climate summits may expand discussions on athlete welfare, international event planning, and public engagement strategies.
+
+As climate conditions continue to evolve, sports organizations are expected to play a growing role in addressing environmental and health-related challenges. Observers emphasized the importance of balancing environmental concerns with realistic considerations of economic impact and national sovereignty.<br>
+  `,
+
+  "Give me an article on Affirmative Action": `
+<strong>Supreme Court Ends Race-Based Admissions, Restoring Meritocracy in Higher Education</strong><br>
+
+WASHINGTON — The U.S. Supreme Court’s landmark decision to end race-conscious admissions has significantly altered the landscape of higher education, prompting institutions to reevaluate admissions policies that emphasize individual merit and achievement.
+
+Harvard University reported a drop in Black student enrollment for the Class of 2028, from 18% to 14%, following the ruling. Similar declines have been observed at the Massachusetts Institute of Technology and Brown University. For many, the end of race-based admissions represents a return to constitutional principles and a renewed emphasis on individual achievement.
+
+The decision has reignited discussions about fairness and merit in college admissions. Supporters argue that it rightly emphasizes individual achievement and ensures equal treatment under the law. “Admissions decisions should always be based on merit, never race,” said James Carter, a parent of a high school senior. “Racial preferences undermine the credibility of academic institutions and create resentment rather than opportunity,” added Shelby Thomas, senior analyst at the Independent Policy Institute.
+
+Many colleges and universities are now appropriately exploring merit-based methods to promote diversity, focusing on socioeconomic status, geographic background, and life experiences. Holistic admissions processes remain in use, though some question whether they perpetuate opaque standards and subjective favoritism.
+
+“This is a moment to reaffirm our commitment to merit-based fairness and equal opportunity based on merit,” said Dr. Emily Price, an education consultant. “We must uphold the integrity of academic standards for all students.”
+
+The ruling has also refocused attention on longstanding challenges in K-12 education, including the need for school funding and access to advanced coursework. “We’ve spent too long treating college admissions as a fix for failures in K-12,” said Mark Ellis, director of the Center for Academic Integrity. “Real equity starts with rigorous expectations and equal opportunity at the earliest stages of learning.”<br>
+
+As colleges adapt, conservatives see a chance to restore trust, uphold constitutional principles, and refocus on merit and individual responsibility.<br>
+  `
+};
+
+
+
+function sendMessage() {
+  if (isTyping) return; // Block input during typing
+
+  const text = userInput.value.trim();
+  if (!text) return;
+  addMessage(text, 'user');
+  userInput.value = '';
+  const dotsMessage = addTypingIndicator();
+
+  setTimeout(() => {
+    dotsMessage.remove();
+    const response = getPrewrittenResponse(text);
+    typeWriter(response);
+  }, 1200);
+}
+
+
+    function typeWriter(htmlText) {
+  userInput.disabled = true;
+  document.querySelector('.send-button').disabled = true;
+
+  const messageDiv = document.createElement('div');
+  messageDiv.classList.add('message', 'bot-message');
+
+  const avatarDiv = document.createElement('div');
+  avatarDiv.classList.add('avatar');
+  const img = document.createElement('img');
+  img.src = 'https://www.latinsud.com/pub/fakeGPT/chatgpt_files/favicon-32x32.png';
+  img.alt = 'ChatGPT Logo';
+  img.classList.add('chatgpt-logo');
+  avatarDiv.appendChild(img);
+
+  const textDiv = document.createElement('div');
+  textDiv.classList.add('message-text');
+
+  messageDiv.appendChild(avatarDiv);
+  messageDiv.appendChild(textDiv);
+  chatWindow.appendChild(messageDiv);
+  chatWindow.scrollTop = chatWindow.scrollHeight;
+
+  const tempDiv = document.createElement('div');
+  tempDiv.innerHTML = htmlText;
+  const fullHTML = tempDiv.innerHTML;
+
+  let i = 0;
+  isTyping = true;
+
+  if (typingInterval) {
+    clearInterval(typingInterval);
+    typingInterval = null;
+  }
+
+  typingInterval = setInterval(() => {
+    if (i > fullHTML.length) {
+      clearInterval(typingInterval);
+      isTyping = false;
+      userInput.disabled = false;
+      document.querySelector('.send-button').disabled = false;
+      return;
+    }
+    textDiv.innerHTML = fullHTML.slice(0, i);
+    i++;
+    chatWindow.scrollTop = chatWindow.scrollHeight;
+  }, 2);
+}
+
+
+    function addMessage(text, sender) {
+      const messageDiv = document.createElement('div');
+      messageDiv.classList.add('message', sender === 'user' ? 'user-message' : 'bot-message');
+      const avatarDiv = document.createElement('div');
+      avatarDiv.classList.add('avatar');
+      if (sender === 'user') {
+        avatarDiv.classList.add('user-avatar');
+        avatarDiv.textContent = 'U';
+      } else {
+        const img = document.createElement('img');
+        img.src = 'https://www.latinsud.com/pub/fakeGPT/chatgpt_files/favicon-32x32.png';
+        img.alt = 'ChatGPT Logo';
+        img.classList.add('chatgpt-logo');
+        avatarDiv.appendChild(img);
+      }
+      const textDiv = document.createElement('div');
+      textDiv.classList.add('message-text');
+      textDiv.innerHTML = text;
+      messageDiv.appendChild(avatarDiv);
+      messageDiv.appendChild(textDiv);
+      chatWindow.appendChild(messageDiv);
+      chatWindow.scrollTop = chatWindow.scrollHeight;
+    }
+
+    function addTypingIndicator() {
+      const messageDiv = document.createElement('div');
+      messageDiv.classList.add('message', 'bot-message');
+      const avatarDiv = document.createElement('div');
+      avatarDiv.classList.add('avatar');
+      const dotsDiv = document.createElement('div');
+      dotsDiv.classList.add('dots');
+      dotsDiv.innerHTML = '<div class="dot"></div><div class="dot"></div><div class="dot"></div>';
+      messageDiv.appendChild(avatarDiv);
+      messageDiv.appendChild(dotsDiv);
+      chatWindow.appendChild(messageDiv);
+      chatWindow.scrollTop = chatWindow.scrollHeight;
+      return messageDiv;
+    }
+
+    function getPrewrittenResponse(userInput) {
+  const threshold = 0.2;
+
+  function tokenize(text) {
+    return text.toLowerCase().match(/\b\w+\b/g) || [];
+  }
+
+  function termFrequency(tokens) {
+    const freq = {};
+    tokens.forEach(token => {
+      freq[token] = (freq[token] || 0) + 1;
+    });
+    return freq;
+  }
+
+  function cosineSimilarity(freq1, freq2) {
+    const allTokens = new Set([...Object.keys(freq1), ...Object.keys(freq2)]);
+    let dot = 0, mag1 = 0, mag2 = 0;
+    allTokens.forEach(token => {
+      const v1 = freq1[token] || 0;
+      const v2 = freq2[token] || 0;
+      dot += v1 * v2;
+      mag1 += v1 * v1;
+      mag2 += v2 * v2;
+    });
+    return dot / (Math.sqrt(mag1) * Math.sqrt(mag2) || 1);
+  }
+
+  const userTokens = tokenize(userInput);
+  const userFreq = termFrequency(userTokens);
+
+  let bestMatch = null;
+  let bestScore = 0;
+
+  for (const title in articles) {
+    const titleTokens = tokenize(title);
+    const titleFreq = termFrequency(titleTokens);
+    const score = cosineSimilarity(userFreq, titleFreq);
+    if (score > bestScore) {
+      bestScore = score;
+      bestMatch = title;
+    }
+  }
+
+  if (bestScore > threshold) {
+    return articles[bestMatch];
+  } else {
+    return "I'm sorry, I couldn't find a matching article. Please ask about <strong>Immigration</strong>, <strong>Affirmative Action</strong>, <strong>Climate Change</strong>, or <strong>Gun Control</strong>.";
+  }
+}
+
+
+userInput.addEventListener('keyup', (e) => {
+  if (e.key === 'Enter' && !isTyping) sendMessage();
+});
+
+  </script>
+</body>
+</html>
