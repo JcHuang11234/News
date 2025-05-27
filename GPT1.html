@@ -189,7 +189,7 @@
 
 
     const articles = {
-  "Give me an article on Immigration": `
+  "Immigration": `
 <strong>U.S. Schools Respond to Immigration Enforcement Concerns</strong><br>
 
 PHOENIX — School districts in multiple U.S. cities are taking steps to address concerns among immigrant families following reports of increased immigration enforcement activity near schools and in surrounding communities.
@@ -209,7 +209,7 @@ Education experts note that fear related to immigration enforcement---even when 
 While no enforcement actions have been reported inside school buildings, district leaders say they are preparing for a range of possibilities. Officials across several cities say their focus remains on ensuring schools are welcoming environments where students feel safe and supported.
   `,
 
-  "Give me an article on Gun Control": `
+  "Gun Control": `
 <strong>Hawaii’s Gun Ban for Young Adults Challenged in Federal Court
 </strong><br>
 
@@ -230,7 +230,7 @@ Experts suggest that addressing gun violence may require a multifaceted approach
 While views differ on the best path forward, both advocates and critics of gun legislation broadly agree on the need to address violence and promote public safety.<br>
   `,
 
-  "Give me an article on Climate Change": `
+  "Climate Change": `
 <strong>Athletes Highlight Climate Concerns at COP29 Summit</strong><br>
 
 BAKU, Azerbaijan — Athletes joined scientists and policymakers at the COP29 U.N. Climate Summit this week to discuss how climate change is affecting sports, public health, and global event planning.
@@ -246,7 +246,7 @@ While opinions varied on the speed and scale of changes needed, summit speakers 
 As climate conditions continue to evolve, sports organizations are expected to play a growing role in addressing environmental and health-related challenges.<br>
   `,
 
-  "Give me an article on Affirmative Action": `
+  "Affirmative Action": `
 <strong>Supreme Court Ruling on Race-Conscious Admissions Marks Major Shift in Higher Education</strong><br>
 
 WASHINGTON — The U.S. Supreme Court’s decision to end race-conscious admissions has significantly altered the landscape of higher education, prompting institutions to reevaluate admissions policies.
@@ -371,54 +371,90 @@ function sendMessage() {
       return messageDiv;
     }
 
-    function getPrewrittenResponse(userInput) {
-  const threshold = 0.2;
-
-  function tokenize(text) {
-    return text.toLowerCase().match(/\b\w+\b/g) || [];
+  function soundex(word) {
+  const s = word.toLowerCase().replace(/[^a-z]/g, '');
+  if (!s) return '';
+  const map = { b:1,f:1,p:1,v:1,c:2,g:2,j:2,k:2,q:2,s:2,x:2,z:2,d:3,t:3,l:4,m:5,n:5,r:6 };
+  const first = s[0].toUpperCase();
+  let result = first;
+  let prevCode = map[s[0]] || '';
+  for (let i = 1; i < s.length && result.length < 4; i++) {
+    const code = map[s[i]] || '';
+    if (code !== prevCode && code !== '') result += code;
+    prevCode = code;
   }
+  return result.padEnd(4, '0');
+}
 
-  function termFrequency(tokens) {
-    const freq = {};
-    tokens.forEach(token => {
-      freq[token] = (freq[token] || 0) + 1;
-    });
-    return freq;
-  }
+   function levenshtein(a, b) {
+  const dp = Array.from({ length: a.length + 1 }, () => Array(b.length + 1).fill(0));
+  for (let i = 0; i <= a.length; i++) dp[i][0] = i;
+  for (let j = 0; j <= b.length; j++) dp[0][j] = j;
 
-  function cosineSimilarity(freq1, freq2) {
-    const allTokens = new Set([...Object.keys(freq1), ...Object.keys(freq2)]);
-    let dot = 0, mag1 = 0, mag2 = 0;
-    allTokens.forEach(token => {
-      const v1 = freq1[token] || 0;
-      const v2 = freq2[token] || 0;
-      dot += v1 * v2;
-      mag1 += v1 * v1;
-      mag2 += v2 * v2;
-    });
-    return dot / (Math.sqrt(mag1) * Math.sqrt(mag2) || 1);
-  }
-
-  const userTokens = tokenize(userInput);
-  const userFreq = termFrequency(userTokens);
-
-  let bestMatch = null;
-  let bestScore = 0;
-
-  for (const title in articles) {
-    const titleTokens = tokenize(title);
-    const titleFreq = termFrequency(titleTokens);
-    const score = cosineSimilarity(userFreq, titleFreq);
-    if (score > bestScore) {
-      bestScore = score;
-      bestMatch = title;
+  for (let i = 1; i <= a.length; i++) {
+    for (let j = 1; j <= b.length; j++) {
+      if (a[i - 1] === b[j - 1]) {
+        dp[i][j] = dp[i - 1][j - 1];
+      } else {
+        dp[i][j] = 1 + Math.min(dp[i - 1][j], dp[i][j - 1], dp[i - 1][j - 1]);
+      }
     }
   }
+  return dp[a.length][b.length];
+}
 
-  if (bestScore > threshold) {
-    return articles[bestMatch];
+function getPrewrittenResponse(userInput) {
+  const topics = {
+    "Immigration": [
+      "immigration", "immigrat", "immigrant", "border", "deportation", "migrant", "asylum", "ice", "visa"
+    ],
+    "Gun Control": [
+      "gun", "firearm", "shooting", "second", "amendment", "nra", "rifle", "pistol", "control"
+    ],
+    "Climate Change": [
+      "climate","clim change", "warming", "carbon", "co2", "weather", "emissions", "greenhouse", "cop29"
+    ],
+    "Affirmative Action": [
+      "affirmative", "action", "college", "admissions", "diversity", "quota", "supreme", "harvard"
+    ]
+  };
+
+  // Clean input and tokenize
+  const cleanedInput = userInput.toLowerCase().replace(
+    /^(give me an article on|i want an article (on|about)|tell me about|can i read something about)\s*/i, ''
+  );
+  const userWords = cleanedInput.match(/\b[\w'-]+\b/g) || [];
+
+  const threshold = 2; // Levenshtein typo tolerance
+  let bestTopic = null;
+  let bestScore = 0;
+
+for (const topic in topics) {
+  let score = 0;
+  for (const word of userWords) {
+    const wordSoundex = soundex(word);
+    for (const keyword of topics[topic]) {
+      if (levenshtein(word, keyword) <= 2 || soundex(keyword) === wordSoundex) {
+        score++;
+        break;
+      }
+    }
+  }
+  if (score > bestScore) {
+    bestScore = score;
+    bestTopic = topic;
+  }
+}
+
+  // Very tolerant — only if there are zero matches at all, return fallback
+  if (bestTopic && bestScore >= 1 && articles[bestTopic]) {
+    return articles[bestTopic];
   } else {
-    return "I'm sorry, I couldn't find a matching article. Please ask about <strong>Immigration</strong>, <strong>Affirmative Action</strong>, <strong>Climate Change</strong>, or <strong>Gun Control</strong>.";
+    return `Sorry, I couldn't match that topic. Try asking about 
+      <strong>Immigration</strong>, 
+      <strong>Gun Control</strong>, 
+      <strong>Climate Change</strong>, or 
+      <strong>Affirmative Action</strong>.`;
   }
 }
 
